@@ -7,7 +7,7 @@ flume1.sinks    = hdfs-sink-1
 # For each source, channel, and sink, set
 # standard properties.
 flume1.sources.kafka-source-1.type = org.apache.flume.source.kafka.KafkaSource
-flume1.sources.kafka-source-1.zookeeperConnect = flume1.ent.cloudera.com:2181/kafka
+flume1.sources.kafka-source-1.zookeeperConnect = flume1.ent.com:2181/kafka
 flume1.sources.kafka-source-1.topic = flume.txn
 flume1.sources.kafka-source-1.batchSize = 100
 flume1.sources.kafka-source-1.channels = hdfs-channel-1
