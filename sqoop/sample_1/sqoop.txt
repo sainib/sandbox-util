@@ -1,0 +1,65 @@
+
+
+===== USER PREP   ========================================
+### RUN FOLLOWING COMMANDS AS USER = root
+
+#create the user on the Sandbox Host OS
+useradd monty
+
+# Create the user home directory in HDFS
+
+su - hdfs -c "hdfs dfs -mkdir -p /user/monty"
+su - hdfs -c "hdfs dfs -chown monty /user/monty" 
+su - hdfs -c "hdfs dfs -chmod 755 /user/monty"
+
+
+===== SQOOP PREP   ========================================
+### RUN FOLLOWING COMMANDS AS USER = root
+
+mysql 
+
+# Run the following SQL commands on the mysql propmpt 
+
+CREATE USER 'monty'@'localhost' IDENTIFIED BY 'mP@ssw0rd';
+GRANT ALL PRIVILEGES ON *.* TO 'monty'@'localhost' WITH GRANT OPTION;
+CREATE USER 'monty'@'%' IDENTIFIED BY 'mP@ssw0rd';
+GRANT ALL PRIVILEGES ON *.* TO 'monty'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+
+
+--Try connecting to the database and created the database/table and load it 
+
+mysql -u monty -h namenode -pmP@ssw0rd
+create database SqoopMySQlDB;
+use SqoopMySQlDB;
+
+create table schools( school_id int, school_name varchar(100), suburb varchar(100),postal_code int);
+
+LOAD DATA LOCAL INFILE './sqoop/PRACTICE-1/schools.csv' INTO TABLE schools
+  FIELDS TERMINATED BY ',' ENCLOSED BY '"'
+  LINES TERMINATED BY '\r\n'
+  IGNORE 1 LINES;
+  
+
+
+===== SQOOP ========================================
+### RUN THE FOLLOWING COMMANDS AS USER = monty
+
+su - monty
+
+sqoop import  
+—connect jdbc:mysql://mysqlhost:3306/SqoopMySQlDB
+—driver	com.mysql.jdbc.Driver
+—username  monty
+—password  mP@ssw0rd
+—columns 
+—split-by suburb
+—table schools
+—target-dir /user/monty/sqoop_output/
+
+
+sqoop import --connect "jdbc:mysql://namenode:3306/SqoopMySQlDB" --driver "com.mysql.jdbc.Driver" --split-by "suburb" --table "schools" --target-dir "/user/monty/sqoop_output/" --username  "monty" --password  "mP@ssw0rd" 
+
+
+
+
