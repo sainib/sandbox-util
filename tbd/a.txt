@@ -3,3 +3,246 @@ https://incresearchsandbox.mdsol.com/RaveWebServices/studies/INC-SAMP-001(DEV)/d
  
 RWS_ETP
 pxVWz2qZ
+
+
+https://bayer2-inc.mdsol.com/RaveWebServices/studies/BAY98-7196 (16803)/datasets/regular/ETPMET  
+RWS_SDM 
+4Ykvgbj9
+
+
+
+
+
+
+create database eedc;
+
+use eedc;
+
+drop table rave_conn;
+
+create table if not exists rave_conn(
+CONNECTION_ID              string,	
+CONNECTION_TYPE              string,
+PROJECT_ID              string,
+PROJECT_OID              string,
+PROJECT_NAME              string,
+SPONSOR_NAME              string,
+BUSINESS_ID              string,
+CONNECTION_URL              string,
+CONNECTION_PROVIDER              string,
+CONNECTION_DATA              string,
+AUTH_TYPE              string,
+AUTH_ID              string,
+AUTH_PIN              string,
+AUTH_PASSCODE              string,
+STATE              string,
+MAX_ROWS_PER_QUERY              string,
+MAX_QUERIES              string,
+LAST_ACCESS_TS              string,
+LAST_ACCESS_STATUS              string,
+UPDATED_TS              string,
+CREATED_TS              string,
+COMMENTS              string,
+LAST_ACCESS_INFO              string
+)
+
+insert into rave_conn values('R_BAYER2_98_7196_16803','RAVE','1004997','BAY98-7196 (16803)','BAY98-7196 (16803)','Bayer HealthCare','RAVE_BAYER','https://bayer2-inc.mdsol.com','com.incresearch.connection.RaveProvider','<studiesUrl>/RaveWebServices/studies/</studiesUrl>','Basic','INCIT_QA','MCg24Ydhr+8fMKw2kjDrKQ==','dwegPPZlqDb3NzF5jniUow==','Active','10000','100','26-MAR-2015 02.00.29.132000000 PM','OK','04-MAY-2016 03.48.33.544964000 PM','29-SEP-2014 08.01.24.747000000 PM','1004997 Phase 3 contraceptive efficacy of a levonorgestrel containing intravaginal ring','33440815')
+insert into rave_conn values('DUMMY','RAVE','1004997','BAY98-719 (16803)','BAY98-7196 (16803)','Bayer HealthCare','RAVE_BAYER','https://bayer2-inc.mdsol.com','com.incresearch.connection.RaveProvider','<studiesUrl>/RaveWebServices/studies/</studiesUrl>','Basic','INCIT_QA','MCg24Ydhr+8fMKw2kjDrKQ==','dwegPPZlqDb3NzF5jniUow==','Active','10000','100','26-MAR-2015 02.00.29.132000000 PM','OK','04-MAY-2016 03.48.33.544964000 PM','29-SEP-2014 08.01.24.747000000 PM','This record has incorrect URL and the API call should fail','33440815')
+
+#************** rave_audit
+
+use eedc_raw;
+create table if not exists rave_audit(
+        created_ts              timestamp,
+        request_first_audit_id  int,
+        request_max_records     int,
+        first_audit_id          int,
+        last_audit_id           int,
+        created_by              string,
+        audit_data              string,
+        record_count            int,
+        project_id                     string,
+        project_oid            string
+)
+partitioned by(connection_id string)
+stored as orc tblproperties ("orc.compress"="SNAPPY");
+ 
+
+#************** rave_audit_raw_events
+
+
+
+
+#************** rave_audit_events_incremental
+
+
+create table if not exists rave_audit_events_incremental stored as orc tblproperties ("orc.compress"="SNAPPY") as select
+concat(project_id,'-',source_id) as event_id_pk,
+audit_indx,
+connection_id,
+project_id,
+business_id,
+connection_url,
+project_oid,
+protocol_number,        
+protocol_title,         
+project_name,
+customer_name, 
+project_description,
+project_start,
+project_end,
+
+comment_repeat_key,
+form_oid,
+form_repeat_key,
+group_name,
+item_group_oid,
+item_group_repeat_key,
+item_oid,
+site_ref_id,
+meta_data_version_oid,
+study_oid,
+query_repeat_key,
+recipient,
+response,
+status,
+reviewed,
+signature_oid,
+study_event_oid,
+study_event_repeat_key,
+subject_key,
+transaction_type,
+value,
+
+--audit record
+user_oid,
+location_oid,
+cast(from_unixtime(unix_timestamp(date_time_stamp,"yyyy-MM-dd'T'HH:mm:ss")) as timestamp) as date_time_stamp,
+reason_for_change, 
+source_id,
+
+--mdsol attributes
+regexp_extract(mdsol_data["AuditSubCategoryName"],'"(.*?)"') as audit_sub_category_name,
+regexp_extract(mdsol_data["DataPageId"],'"(.*?)"') as data_page_id,
+regexp_extract(mdsol_data["Freeze"],'"(.*?)"') as freeze,
+regexp_extract(mdsol_data["InstanceId"],'"(.*?)"') as instance_id,
+regexp_extract(mdsol_data["Lock"],'"(.*?)"') as lock,
+regexp_extract(mdsol_data["RecordId"],'"(.*?)"') as record_id,
+regexp_extract(mdsol_data["SignatureBroken"],'"(.*?)"') as signature_broken,
+regexp_extract(mdsol_data["SubjectKeyType"],'"(.*?)"') as subject_key_type,
+regexp_extract(mdsol_data["SubjectName"],'"(.*?)"') as subject_name,
+regexp_extract(mdsol_data["Verify"],'"(.*?)"') as verify,
+regexp_extract(mdsol_data["InstanceName"],'"(.*?)"') as instance_name,
+regexp_extract(mdsol_data["Status"],'"(.*?)"') as subject_status,
+q1.last_updated_ts
+from ( select
+audit_indx,
+connection_id,
+project_id,
+business_id, 
+connection_url,
+project_oid,
+protocol_number,        
+protocol_title,         
+project_name,
+customer_name, 
+project_description,
+project_start,
+project_end,
+--odm xpath
+
+xpath_string(event_data,'//@StudyOID') as study_oid,
+xpath_string(event_data,'//@CommentRepeatKey') as comment_repeat_key,
+xpath_string(event_data,'//@FormOID') as form_oid,
+xpath_string(event_data,'//@FormRepeatKey') as form_repeat_key,
+xpath_string(event_data,'//@GroupName') as group_name,
+xpath_string(event_data,'//@ItemGroupOID') as item_group_oid,
+xpath_string(event_data,'//@ItemGroupRepeatKey') as item_group_repeat_key,
+xpath_string(event_data,'//@ItemOID') as item_oid,
+xpath_string(event_data,'//@LocationOID') as site_ref_id,
+xpath_string(event_data,'//@MetaDataVersionOID') as meta_data_version_oid,
+xpath_string(event_data,'//@QueryRepeatKey') as query_repeat_key,
+xpath_string(event_data,'//@Recipient') as recipient,
+xpath_string(event_data,'//@Response') as response,
+xpath_string(event_data,'//@Status') as status,
+xpath_string(event_data,'//@Reviewed') as reviewed,
+xpath_string(event_data,'//@SignatureOID') as signature_oid,
+xpath_string(event_data,'//@StudyEventOID') as study_event_oid,
+xpath_string(event_data,'//@StudyEventRepeatKey') as study_event_repeat_key,
+xpath_string(event_data,'//@SubjectKey') as subject_key,
+xpath_string(event_data,'//@TransactionType') as transaction_type,
+xpath_string(event_data,'//@Value') as value,
+
+--audit record
+xpath_string(audit_record,'//@UserOID') as user_oid,
+xpath_string(audit_record,'//@LocationOID') as location_oid,
+xpath_string(audit_record,'//DateTimeStamp') as date_time_stamp,
+xpath_string(audit_record,'//ReasonForChange') as reason_for_change, 
+xpath_string(audit_record,'//SourceID') as source_id,
+--mdsol attributes map
+str_to_map(event_data," mdsol:","=") as mdsol_data,
+last_updated_ts
+from eedc_raw.rave_audit_raw_events where audit_record is not null) q1;
+
+
+
+
+
+#************** rave_audit_events
+create table if not exists rave_audit_events (
+event_id_pk             string,
+audit_indx              string,
+connection_id           string,
+project_id              string,
+business_id             string,
+connection_url          string,
+project_oid             string,
+protocol_number         string,
+protocol_title          string,
+project_name            string,
+customer_name           string,
+project_description     string,
+project_start           date,
+project_end             date,
+comment_repeat_key      string,
+form_oid                string,
+form_repeat_key         string,
+group_name              string,
+item_group_oid          string,
+item_group_repeat_key   string,
+item_oid                string,
+site_ref_id             string,
+meta_data_version_oid   string,
+study_oid               string,
+query_repeat_key        string,
+recipient               string,
+response                string,
+status                  string,
+reviewed                string,
+signature_oid           string,
+study_event_oid         string,
+study_event_repeat_key  string,
+subject_key             string,
+transaction_type        string,
+value                   string,
+user_oid                string,
+location_oid            string,
+date_time_stamp         timestamp,
+reason_for_change       string,
+source_id               string,
+--audit_sub_category_name string,
+data_page_id            string,
+freeze                  string,
+instance_id             string,
+lock                    string,
+record_id               string,
+signature_broken        string,
+subject_key_type        string,
+subject_name            string,
+verify                  string,
+instance_name           string,
+subject_status          string,
+last_updated_ts	        timestamp
+)
+partitioned by(audit_sub_category_name string)
+stored as orc tblproperties ("orc.compress"="SNAPPY");
